@@ -1,0 +1,59 @@
+### Modelled from Metrum Pharmacometrics course 205
+### Let's create a hypothetical phase 1 clinical trial results, showing the exposure and response for a drug call datocycin (dat) 
+#### that was adminstered to 40 patients and the response was measured after drug administration, 3 months, 6 months and 9 months 
+#### after drug adminstration.
+
+nSubj <- 40
+doses <- c(0, 10, 30, 100)
+times <- seq(0, 9, 3)
+
+dat <- expand.grid(Subject = 1:nSubj,
+                   Month = times)
+dat <- as.data.frame(unclass(dat))
+
+dat$Dose <- doses[as.numeric(dat$Subject) %% length(doses) + 1]
+dat$Exposure <- dat$Dose * exp(rnorm(nrow(dat), 0, 0.3))
+noise <- rep(rnorm(nSubj, 0, 0.2), length(doses)) + rnorm(nrow(dat), 0, 0.2)
+emax <- c(0, 50, 100, 100)[match(dat$Month, times)]
+dat$Response <- with(dat, 10 + emax * Exposure / (Exposure + 25)) * exp(noise)
+dat$Response <- pmin(dat$Response, 100)  
+
+dat$Dose2 <- factor(paste(dat$Dose, "mg"))
+dat$Dose2 <- factor(dat$Dose2, levels = levels(dat$Dose2)[c(1, 2, 4, 3)])
+
+dat$Sex <- rep(sample(c("M", "F"), nSubj, replace = TRUE), length(times))
+
+head(dat)
+
+
+### Install and load the lattice package for plotting
+
+install.packages("lattice")
+library(lattice)
+
+
+### Generate a plot showing the Exposure-Renponse relationship for dat for the respective months after drug treatment 
+
+
+my.panel <- function(x, y, 
+                     my.point.color = "blue", 
+                     my.loess.color = "red",
+                     ... 
+                     ) {
+  panel.xyplot(x, y, col = my.point.color)
+  panel.loess(x, y, col = my.loess.color, ...)
+  return(NULL)
+}
+
+xyplot(Response ~ Exposure | paste("Month", Month),
+       data = dat,
+       layout = c(4, 1), 
+       panel = my.panel, 
+       my.point.color = "blue", 
+       my.loess.color = "red",
+       lty = 2, # gets passed to my.panel as "...",
+       lwd = 2
+       )
+      )
+
+
